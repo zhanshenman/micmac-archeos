@@ -151,14 +151,23 @@ int cAppliMalt::Exe()
 {
     if (! mExe) return 0;
     int aRes = TopSystem(mCom.c_str());
+
+    if (! mExe) return 0;
+
     if ((aRes==0) && ( mComTaramaOA !=""))
     {
         aRes = TopSystem(mComTaramaOA.c_str());
     }
+
+
+
     if ((aRes==0) && ( mComOA !=""))
     {
         aRes = TopSystem(mComOA.c_str());
     }
+
+
+
     if (!MMVisualMode) ShowParam();
     return aRes;
 }
@@ -256,6 +265,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
 
     Box2dr aBoxClip, aBoxTerrain;
     double aResolTerrain;
+    double aRatioResolImage=1;
 
     bool mModePB = false;
     std::string mModeOri;
@@ -264,6 +274,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
     double mPenalSelImBestNadir = -1;
 
     bool ForceNoIncid = false;
+    bool mForceZFaisc = false;
 
     Pt2di  aPtDebug;
 
@@ -301,7 +312,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                     << EAM(mCostTrans,"CostTrans",true,"Cost to change from correlation to uncorrelation (Def=2.0) ")
                     << EAM(mEtapeInit,"Etape0",true,"First Step (Def=1) ")
                     << EAM(mAffineLast,"AffineLast",true,"Affine Last Etape with Step Z/2 (Def=true) ")
-                    << EAM(mResolOrtho,"ResolOrtho",true,"Resolution of ortho, relatively to images (Def=1.0; 0.5 means smaller images) ")
+                    << EAM(mResolOrtho,"ResolOrtho",true,"Resolution of ortho, relatively to images (Def=1.0; 0.5 means smaller images, i.e. decrease the resolution) ")
                     << EAM(mImMNT,"ImMNT",true,"Filter to select images used for matching (Def All, usable with ortho) ",eSAM_IsPatFile)
                     << EAM(mImOrtho,"ImOrtho",true,"Filter to select images used for ortho (Def All) ",eSAM_IsPatFile)
                     << EAM(mZMoy,"ZMoy",true,"Average value of Z", eSAM_NoInit)
@@ -313,6 +324,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                     << EAM(aBoxClip,"BoxClip",true,"To Clip Computation, normalized image coordinates ([0,0,1,1] means full box)", eSAM_Normalize)
                     << EAM(aBoxTerrain,"BoxTerrain",true,"([Xmin,Ymin,Xmax,Ymax])")
                     << EAM(aResolTerrain,"ResolTerrain",true,"Ground Resol (Def automatically computed)", eSAM_NoInit)
+                    << EAM(aRatioResolImage,"RRI",true,"Ratio Resol Image (f.e. if set to 0.8 and image resol is 2.0, will be computed at 1.6)", eSAM_NoInit)
                     << EAM(mRoundResol,"RoundResol",true,"Use rounding of resolution (def context dependent,tuning purpose)", eSAM_InternalUse)
                     << EAM(mGenCubeCorrel,"GCC",true,"Generate export for Cube Correlation")
                     << EAM(mEZA,"EZA",true,"Export Z Absolute")
@@ -325,6 +337,8 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                     << EAM(mPenalSelImBestNadir,"PSIBN",true,"Penal for Automatic Selection of Images to Best Nadir (Def=-1, dont use)", eSAM_InternalUse)
                     << EAM(ForceNoIncid,"InternalNoIncid",true,"Internal Use", eSAM_InternalUse)
                     << EAM(aPtDebug,"PtDebug",true,"Internal Use (Point of debuging)", eSAM_InternalUse)
+                    << EAM(mForceZFaisc,"ForceZFais",true,"Force Z Faisecau evan with stenope camera", eSAM_InternalUse)
+ 
                 );
 
     if (!MMVisualMode)
@@ -339,7 +353,8 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
 
 
 
-      std::string mFullModeOri;
+
+      std::string mFullModeOri = "eGeomImageOri";
       mModePB = EAMIsInit(&mModeOri);
       if (mModePB)
       {
@@ -416,7 +431,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
           mICNM->CorrecNameOrient(mOri);
       }
       mSetIm = mICNM->Get(mIms);
-      mNbIm = mSetIm->size();
+      mNbIm = (int)mSetIm->size();
       ELISE_ASSERT((mNbIm>=2)|mUseImSec,"Not Enough image in Pattern");
 
       std::string aKeyOri = "NKS-Assoc-Im2Orient@-" + mOri;
@@ -425,13 +440,19 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
       int    aNbZM = 0;
 
 
-      if (mNbIm < mNbMinIV && !mUseImSec)
+      if ((! EAMIsInit(&mNbMinIV))  && (mNbIm< mNbMinIV) )
+      {
+           mNbMinIV = mNbIm;
+      }
+
+      if ((mNbIm < mNbMinIV) && (!mUseImSec))
       {
           std::cout << "For Nb Im = " << mNbIm << " NbVI= " << mNbMinIV << "\n";
           ELISE_ASSERT(false,"Nb image is < to min visible image ...");
       }
 
 
+      bool hasNewGenImage =false;
       if (! mModePB)
       {
           // MPD : Ajout le 22/05/2015; car peut creer pb  si l'utilisateur a purge la directory
@@ -439,32 +460,61 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
           for (int aKIm = 0; aKIm<mNbIm ; aKIm++)
           {
               const std::string & aNameIm = (*mSetIm)[aKIm];
+
+/*
               std::string aNameOri = mICNM->Assoc1To1(aKeyOri,aNameIm,true);
 
               //ToDo: Faire evoluer ce code pour pouvoir gerer d'autres type d'orientation (Grille et RTO).
               // utilisation d'une ElCamera (avec cCameraModuleOrientation pour le cas des ModuleOrientation)
 
               CamStenope *  aCS = CamOrientGenFromFile(aNameOri,mICNM);
+*/
+              cBasicGeomCap3D * aCG =  mICNM->StdCamGenOfNames(mOri,aNameIm);
 
-              if (aCS->AltisSolIsDef())
+              if (aCG->DownCastCS() == 0)
               {
-                  aSomZM += aCS->GetAltiSol();
-                  aSomResol +=  aCS->ResolutionSol();
+                 hasNewGenImage = true;
+/*
+                 Pt2dr aPMil = aCG->SzBasicCapt3D()/2.0;
+                 Pt3dr aCOpt = aCG->OpticalCenterOfPixel()
+
+
+                 std::cout << "IIIPPPP " << aCG->GetVeryRoughInterProf() 
+                           << " P0 " << aCG->PMoyOfCenter()
+                           << "\n"; getchar();
+*/
+              }
+
+              if (aCG->HasRoughCapteur2Terrain())
+              {
+                  aSomZM += aCG->PMoyOfCenter().z;
+                  aSomResol +=  aCG->GlobResol();
                   aNbZM++;
               }
 
               Pt2di aCorns[4];
-              Box2di aBx(Pt2di(0,0), aCS->Sz());
+              Box2di aBx(Pt2di(0,0), aCG->SzBasicCapt3D());
               aBx.Corners(aCorns);
               Pt2dr aP0(0,0);
               for (int aKC=0 ; aKC< 4 ; aKC++)
-                  aP0.SetSup(aCS->OrGlbImaM2C(Pt2dr(aCorns[aKC])));
+              {
+                  aP0.SetSup(aCG->OrGlbImaM2C(Pt2dr(aCorns[aKC])));
+              }
 
 
               mSzGlob = mSzGlob + aP0;
           }
           mSzGlob = mSzGlob / double(mNbIm);
       }
+
+      if (hasNewGenImage)
+         mFullModeOri= "eGeomGen";
+
+if(0)
+{
+   for (int aK=0 ; aK<10 ; aK++) std::cout << "HASNEWIMAGE " << hasNewGenImage << "\n";
+   getchar();
+}
 
       bool ZMoyInit = EAMIsInit(&mZMoy)  && (mType != eGeomImage);
       bool IncMaxInit = EAMIsInit(&mIncidMax)  && (mType != eGeomImage);
@@ -489,6 +539,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
               aRSRT = true;
           }
       }
+
 
       bool IsOrthoXCSte = false;
       bool IsAnamXCsteOfCart = false;
@@ -545,7 +596,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
           {
               mDirMEC = "MM-Malt-Img-" + StdPrefix(mImMaster) +ELISE_CAR_DIR;
           }
-          mUseMasqTA = UseMTAOri && ELISE_fp::exist_file(StdPrefix(mImMaster)+"_Masq.tif");
+          mUseMasqTA = UseMTAOri && ELISE_fp::exist_file(mDir+StdPrefix(mImMaster)+"_Masq.tif");
           if (mUseMasqTA)
               FileMasqT = "MM-MasqImage.xml";
       }
@@ -585,9 +636,10 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
               ;
 
 
+      bool ModeFaisZ = mModePB| hasNewGenImage | mForceZFaisc;
       std::string aNameGeom = (mImMaster=="") ?
                   "eGeomMNTEuclid" :
-                  (mIsSpherik? "eGeomMNTFaisceauPrChSpherik" : (mModePB ? "eGeomMNTFaisceauIm1ZTerrain_Px1D" : "eGeomMNTFaisceauIm1PrCh_Px1D"));
+                  (mIsSpherik? "eGeomMNTFaisceauPrChSpherik" : ( ModeFaisZ ? "eGeomMNTFaisceauIm1ZTerrain_Px1D" : "eGeomMNTFaisceauIm1PrCh_Px1D"));
 
       mCom =              MM3dBinFile_quotes("MICMAC")
               +  ToStrBlkCorr( Basic_XML_MM_File(aFileMM) )
@@ -668,10 +720,15 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                   + std::string(" ");
       }
 
-      if (EAMIsInit(&mModeOri))
-          mCom =  mCom + " +ModeOriIm=" + mFullModeOri
+      mCom =  mCom + " +ModeOriIm=" + mFullModeOri + " ";
+      if (hasNewGenImage)
+      {
+         mCom =  mCom + "  +UseGenBundle=true ";
+      }
+      if (EAMIsInit(&mModeOri) || hasNewGenImage)
+          mCom =  mCom 
                   + std::string(" +Conik=false")
-                  +  std::string(" +ZIncIsProp=false")
+                  +  std::string(" +ZIncIsProp=false ")
 
                   ;
 
@@ -697,7 +754,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
       {
          if (mType==eGeomImage)
          {
-              cRepereCartesien aRC = StdGetFromPCP(mDir+mRep,RepereCartesien);
+               cRepereCartesien aRC = StdGetFromPCP(mDir+mRep,RepereCartesien);
                mCom =  mCom
                        + std::string(" +SpecDirFaisc=true")
                        + std::string(" +DirFaisX=") + ToString(-aRC.Oz().x)
@@ -782,6 +839,10 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                   +  std::string(" +Y1Clip=") + ToString(aBoxClip._p1.y) ;
       }
 
+      if (EAMIsInit(&aRatioResolImage))
+      {
+           mCom  =    mCom + " +UseRatioResolImage=true " + " +RatioResolImage=" + ToString(aRatioResolImage);
+      }
       if (ResolTerrainIsInit)
       {
           mCom  =    mCom + " +UseResolTerrain=true "

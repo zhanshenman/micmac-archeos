@@ -56,6 +56,8 @@ set(Util_Src_Files
         #${UTIL_DIR}/win_regex.c
         ${UTIL_DIR}/visual_mainwindow.cpp
         ${UTIL_DIR}/visual_buttons.cpp
+        ${UTIL_DIR}/errors.cpp
+        ${UTIL_DIR}/MessageHandler.cpp
         ${Uti_HEADERS_MOCED}
 )
 

@@ -158,10 +158,10 @@ cGraphHom::cGraphHom(int argc,char ** argv) :
 
     mKeyFile = mICNM->StdKeyOrient(mKeyFile);
 
-    mLFile =  mICNM->StdGetListOfFile(mPat);
+    mLFile =  mICNM->StdGetListOfFile(mPat,1);
 
 
-    mNbSom =  mLFile.size();
+    mNbSom =  (int)mLFile.size();
 
     std::cout << "Nb Images = " <<  mNbSom << "\n";
 
@@ -210,7 +210,7 @@ cGraphHom::cGraphHom(int argc,char ** argv) :
                  aZ.SetVal(aC.z - aDZ *(1+mRab));
             }
 
-            aCam = Cam_Gen_From_XML(*aCO,mICNM);
+            aCam = Cam_Gen_From_XML(*aCO,mICNM,aNF);
 
             if (! mTerr)
             {

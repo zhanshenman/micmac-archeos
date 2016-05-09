@@ -167,9 +167,10 @@ class cElNuage3DMaille : public cCapture3D
         // return 0 si pas de pb
         virtual double SeuilDistPbTopo() const;
 
+        Pt2di    SzBasicCapt3D() const;
         bool  CaptHasData(const Pt2dr &) const ;
         Pt2dr    Ter2Capteur   (const Pt3dr & aP) const;
-         bool     PIsVisibleInImage   (const Pt3dr & aP) const ;
+         bool     PIsVisibleInImage   (const Pt3dr & aP,const cArgOptionalPIsVisibleInImage  * =0) const ;
         ElSeg3D  Capteur2RayTer(const Pt2dr & aP) const;
         bool  HasRoughCapteur2Terrain() const ;
         Pt2dr ImRef2Capteur   (const Pt2dr & aP) const ;
@@ -398,8 +399,10 @@ class cElNuage3DMaille : public cCapture3D
              const std::string & aDir,
              const cXML_ParamNuage3DMaille &,
              Fonc_Num aFDef,
+             const std::string & aNameFile,
              bool      WithEmptyData = false
         );
+        const std::string & NameFile() const;
         virtual ~cElNuage3DMaille();
 
         static cElNuage3DMaille * FromFileIm
@@ -411,6 +414,7 @@ class cElNuage3DMaille : public cCapture3D
                                   );
         static cElNuage3DMaille * FromParam
                                   (
+                                       const std::string & aNameFile,
                                        const cXML_ParamNuage3DMaille &,
                                        const std::string & aDir,
                                        const std::string & aMasq = "",
@@ -570,6 +574,7 @@ class cElNuage3DMaille : public cCapture3D
         int                              mNbTri;
         mutable bool                     mResolGlobCalc;
         mutable double                   mResolGlob;
+        std::string                      mNameFile;
 };
 
 
@@ -757,7 +762,7 @@ cElNuage3DMaille *  BasculeNuageAutoReSize
 template <class Type> void WriteType(FILE * aFP,Type f)
 {
     size_t  size = sizeof(Type);
-    TheIntFuckingReturnValue=fwrite(&f,size,1,aFP);
+    TheIntFuckingReturnValue = (int)fwrite(&f,size,1,aFP);
 }
 
 
@@ -788,7 +793,6 @@ class cMasqBin3D
 
      private :
 };
-
 
 
 #endif // _ELISE_NUAGE_3D_MAILLE_

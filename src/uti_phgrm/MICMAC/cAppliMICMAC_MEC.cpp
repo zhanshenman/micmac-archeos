@@ -753,7 +753,7 @@ void cAppliMICMAC::DoOneBloc
             aVPtInEc.push_back(dist8(Pt2di(anX,anY))<=mCurSzWInt);
             if (aVPtInEc.back())
             {
-               aVPtIndOK.push_back(aVPtInEc.size()-1);
+               aVPtIndOK.push_back((int)(aVPtInEc.size()-1));
                aVPtOK.push_back(Pt2di(anX,anY));
             }
             mVecV1.push_back(0);
@@ -925,7 +925,7 @@ void cAppliMICMAC::DoImagesBSurH(const cDoImageBSurH& aParBsH)
      double aDownScale = aParBsH.ScaleNuage();
 
      cXML_ParamNuage3DMaille aXmlN =  mCurEtape->DoRemplitXML_MTD_Nuage();
-     cElNuage3DMaille *  aFullNuage = cElNuage3DMaille::FromParam(aXmlN,FullDirMEC());
+     cElNuage3DMaille *  aFullNuage = cElNuage3DMaille::FromParam(PDV1()->Name(),aXmlN,FullDirMEC());
 
      cElNuage3DMaille *  aNuage = aFullNuage->ReScaleAndClip(aDownScale);
 

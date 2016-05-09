@@ -55,6 +55,7 @@ int AperoChImMM_main(int argc,char ** argv)
     bool OnlyVecDep=false;
 
     Pt2dr aFocs;
+    bool ExpImSec = true;
 
 
     ElInitArgMain
@@ -63,7 +64,7 @@ int AperoChImMM_main(int argc,char ** argv)
     LArgMain()  << EAMC(aFullDir,"Dir + Pattern", eSAM_IsPatFile)
                     << EAMC(AeroIn,"Orientation", eSAM_IsExistDirOri),
     LArgMain()
-                    << EAM(ExpTxt,"ExpTxt",true,"Have tie points been exported in text format (def = false)", eSAM_IsBool)
+                    << EAM(ExpTxt,"ExpTxt",true,"Use tie points in text format (def = false, use dat format)", eSAM_IsBool)
                     << EAM(Out,"Out",true,"Output destination (Def= same as Orientation-parameter)", eSAM_IsOutputFile)
                     << EAM(CalPerIm,"CalPerIm",true,"If a calibration per image was used (Def=False)", eSAM_IsBool)
                     << EAM(aPatternExport,"PatExp",true,"Pattern to limit export (Def=.* , i.e. all are exported)", eSAM_IsBool)
@@ -73,6 +74,7 @@ int AperoChImMM_main(int argc,char ** argv)
                     << EAM(aMasq3D,"Masq3D",true,"Masq3D for tie points selection")
                     << EAM(mVecDep,"VecDep",true,"Fixed Vec of deplacement (adapted to video like acquisition) ")
                     << EAM(OnlyVecDep,"OnlyVecDep",true,"Only vec dep (internal purpose) ",eSAM_InternalUse)
+                    << EAM(ExpImSec,"ExpImSec",true,"Export Im Sec (Def= true) ",eSAM_IsBool)
     );
 
     if (MMVisualMode) return EXIT_SUCCESS;
@@ -121,6 +123,11 @@ int AperoChImMM_main(int argc,char ** argv)
     if (EAMIsInit(&aMasq3D))
     {
         aCom = aCom + " +UseMasq3D=true +Masq3D=" + aMasq3D;
+    }
+
+    if (EAMIsInit(&ExpImSec))
+    {
+        aCom = aCom + " +ExportImSec=" + ToString(ExpImSec);
     }
 
    int aRes = EXIT_SUCCESS;

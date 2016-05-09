@@ -1795,6 +1795,7 @@ void cEtapeMecComp::DoRemplitXMLNuage() const
 
 cXML_ParamNuage3DMaille cEtapeMecComp::DoRemplitXML_MTD_Nuage() const
 {
+
    // Prudence pour la generation systematique, ce ne doit pas
    // fonctionner avec toutes les geometries
 
@@ -1854,8 +1855,7 @@ cXML_ParamNuage3DMaille cEtapeMecComp::DoRemplitXMLNuage(const cMMExportNuage & 
     {
         const cPlyFile & aPlF = anEN.PlyFile().Val();
 
-        cElNuage3DMaille * aN1 = cElNuage3DMaille::FromParam
-                                    (aNuage, mAppli.FullDirMEC());
+        cElNuage3DMaille * aN1 = cElNuage3DMaille::FromParam(mNameXMLNuage,aNuage, mAppli.FullDirMEC());
 
 
         for

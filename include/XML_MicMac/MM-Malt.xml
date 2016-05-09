@@ -164,6 +164,9 @@ MICMAC /home/marc/micmac/include/XML_MicMac/Param-MNS-Ortho.xml  WorkDir=/home/m
 
    <Symb> UseResolTerrain=false </Symb>
    <Symb> ResolTerrain=0 </Symb>
+   <Symb> UseRatioResolImage=false </Symb>
+   <Symb> RatioResolImage=1 </Symb>
+
 <!--
 
     <Symb>  UseEqui=t=rue </Symb>
@@ -195,6 +198,9 @@ MICMAC /home/marc/micmac/include/XML_MicMac/Param-MNS-Ortho.xml  WorkDir=/home/m
      <Symb> PtDebugY=-10000000 </Symb>
      <Symb> RSRT=false </Symb>
 
+     
+     <Symb> UseGenBundle=false </Symb>
+
 </DicoLoc>
 
 <!--  M2 : Describe the ground zone where the matching is to be done -->
@@ -216,6 +222,12 @@ MICMAC /home/marc/micmac/include/XML_MicMac/Param-MNS-Ortho.xml  WorkDir=/home/m
            <#WHEN VTEST=${UseResolTerrain}>
                   <ResolutionTerrain> ${ResolTerrain} </ResolutionTerrain>
            </#WHEN>
+           <#WHEN VTEST=${UseRatioResolImage}>
+                  <RatioResolImage> ${RatioResolImage} </RatioResolImage>
+           </#WHEN>
+
+
+
            <RoundSpecifiedRT>  ${RSRT} </RoundSpecifiedRT>
            <IncludeFileLoc>  ${FileMasqT} </IncludeFileLoc>
            <FilterEstimTerrain> ${ImMNT} </FilterEstimTerrain>
@@ -253,16 +265,24 @@ MICMAC /home/marc/micmac/include/XML_MicMac/Param-MNS-Ortho.xml  WorkDir=/home/m
            </#WHEN>
      </Images>
 
-     <#IF VTEST=${ModeOrientStd}>
-         <NomsGeometrieImage>
-             <FCND_Mode_GeomIm>
-                   <FCND_GeomCalc>  NKS-Assoc-Im2Orient@-${Ori} </FCND_GeomCalc>
-             </FCND_Mode_GeomIm>
-         </NomsGeometrieImage>
-         <NomsGeometrieImage>
-                <PatternSel>  (.*)\.[0-9,a-z,A-Z,_]{3,4} </PatternSel>
-                <PatNameGeom> $1.${Ori}    </PatNameGeom>
-          </NomsGeometrieImage>
+     <#IF VTEST=${UseGenBundle}>
+           <NomsGeometrieImage>
+                   <NGI_StdDir>
+                        <StdDir>  ${Ori} </StdDir>
+                        <NGI_StdDir_Apply> .* </NGI_StdDir_Apply>
+                   </NGI_StdDir>
+           </NomsGeometrieImage>
+           <#IF VTEST=${ModeOrientStd}>
+               <NomsGeometrieImage>
+                   <FCND_Mode_GeomIm>
+                         <FCND_GeomCalc>  NKS-Assoc-Im2Orient@-${Ori} </FCND_GeomCalc>
+                   </FCND_Mode_GeomIm>
+               </NomsGeometrieImage>
+               <NomsGeometrieImage>
+                      <PatternSel>  (.*)\.[0-9,a-z,A-Z,_]{3,4} </PatternSel>
+                      <PatNameGeom> $1.${Ori}    </PatNameGeom>
+                </NomsGeometrieImage>
+           </#IF>
      </#IF>
 
 
